@@ -37,7 +37,7 @@ def _reduce_noise_clean(
     prop_decrease: float = 0.72,
     n_std_thresh_stationary: float = 1.25,
 ) -> np.ndarray:
-    """Remoção de ruído mais firme mantendo naturalidade do sinal."""
+    """Remoção de ruído compatível com qualquer versão do noisereduce."""
     if len(y) < int(sr * 0.5):
         return y.astype(np.float32)
 
@@ -49,16 +49,13 @@ def _reduce_noise_clean(
         n_std_thresh_stationary=n_std_thresh_stationary,
     ).astype(np.float32)
 
-    # Passada complementar suave não-estacionária para ruídos/estalos variáveis
     non_stat = nr.reduce_noise(
         y=cleaned,
         sr=sr,
         stationary=False,
         prop_decrease=min(0.45, prop_decrease * 0.6),
-        n_std_thresh_nonstationary=1.5,
     ).astype(np.float32)
 
-    # Blend 70% não-estacionário refinado + 30% estacionário limpo para evitar artefatos metálicos
     blended = (0.70 * non_stat + 0.30 * cleaned).astype(np.float32)
     return blended
 
@@ -200,7 +197,6 @@ def _apply_puigtec_analog_eq(y: np.ndarray, sr: int, matrix: str) -> np.ndarray:
 
     shaped = eq(y, sr).astype(np.float32)
 
-    # Estágio de saída valvulado PuigTec (harmônicos pares + ímpares suaves sem clipar)
     tube_bias = 0.024
     warm = (np.tanh((shaped + tube_bias) * drive) - np.tanh(tube_bias * drive)) / np.tanh(drive)
     return warm.astype(np.float32)
